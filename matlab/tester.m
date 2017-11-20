@@ -8,40 +8,14 @@ env.computeDTW = false;
 %%{
 global commands;
 addpath('lib');
+
 %% READING AUDIO FILES (LABELED)
-if (strcmp(env.os,'Windows_NT'))
-    env.dirName = '..\dataset\';
-    env.slash = '\';
-else
-    env.dirName = '../dataset/';
-    env.slash = '/';
-end
-if (env.reloadData)
-    d = dir(env.dirName);
-    isub = [d(:).isdir]; %# returns logical vector
-    nameFolds = {d(isub).name}';
-    nameFolds(ismember(nameFolds,{'.','..'})) = [];
-    commands = cell(size(nameFolds,1),1);
-    for i=1:size(nameFolds,1)
-        disp(strcat('comando: ',nameFolds{i}));
-        fileList = getAllFiles(strcat(env.dirName,nameFolds{i}));
-        audioFiles = cell(size(fileList,1),3);
-        for j=1:size(fileList,1)
-            [audioFiles{j,1}, audioFiles{j,2}] = audioread(fileList{j});
-            audioFiles{j,3} = fileList{j};
-        end
-        commands{i}.description = nameFolds{i};
-        commands{i}.audio = audioFiles;
-    end
-    clearvars audioFiles d dirName fileList i isub j nameFolds;
-    save(strcat('mat',env.slash,'audio_loaded.mat'),'commands');
-else
-    load(strcat('mat',env.slash,'audio_loaded.mat'));
-end
+load_data;
 
 env.mfccComprThreshold = 1;
 env.lpcN = 12;
 env.mfccN = 12;
+env.splitTrTe = 0.7;
 %% ENHANCING AUDIO
 % performs speech enhancement using mmse estimate
 addpath(strcat('voicebox',env.slash));
@@ -57,7 +31,7 @@ for i=1:size(commands,1)
     for j=1:size(commands{i}.audio,1)
         row = commands{i}.audio(j,:);
         [activeLevel, activityFactor] = activlev(row{1}, row{2});
-        mfcc = melcepst(row{1}, row{2});
+        mfcc = melcepst(row{1}, row{2},'M',env.mfccN);
         %mfcc = melcepst(row{1}, row{2}, 'N');
         % mfcc compression
         if env.MFCCcompression
@@ -90,7 +64,7 @@ Ntot = size(commands{1,1}.audio,1);
     % split_percent = 1-1/kfold_i; % in [0,1]
     % split_ratio * Ntr = Nte
     % split_ ratio  = Nte / Ntr = (1-split_percent) / split_percent
-    Ntr = floor(split_percent*Ntot);
+Ntr = floor(env.splitTrTe*Ntot);
 Nte = Ntot - Ntr;
 ind = randperm(Ntot);
 Ncl = length(commands);
@@ -120,7 +94,7 @@ row2 = 16;
 disp(strcat('from class-',int2str(class1),' to class-',int2str(class2)));
 disp(strcat('L1=',int2str(size(data_tr{row1,class1},1)),...
     ',L2=',int2str(size(data_tr{row2,class2},1))));
-[tmp1, tmp2] = MFCCmatch(data_tr{row1,class1},data_tr{row2,class2});
+[tmp1, tmp2] = MFCCmatch_mex(data_tr{row1,class1},data_tr{row2,class2});
 disp(strcat('from :',int2str(tmp2(1,1)),',',int2str(tmp2(1,2))));
 disp(strcat(' to  :',int2str(tmp2(end,1)),',',int2str(tmp2(end,2))));
 disp(strcat('DTW :',num2str(tmp1)));
@@ -131,7 +105,7 @@ row2 = 2;
 disp(strcat('from class-',int2str(class1),' to class-',int2str(class2)));
 disp(strcat('L1=',int2str(size(data_tr{row1,class1},1)),...
     ',L2=',int2str(size(data_tr{row2,class2},1))));
-[tmp3, tmp4] = MFCCmatch(data_tr{row1,class1},data_tr{row2,class2});
+[tmp3, tmp4] = MFCCmatch_mex(data_tr{row1,class1},data_tr{row2,class2});
 disp(strcat('from :',int2str(tmp4(1,1)),',',int2str(tmp4(1,2))));
 disp(strcat(' to  :',int2str(tmp4(end,1)),',',int2str(tmp4(end,2))));
 disp(strcat('DTW :',num2str(tmp3)));
@@ -153,7 +127,7 @@ if (env.computeDTW)
                     % i-esimo elemento della j-esima classe e
                     % k-esimo elemento della l-esima classe
                     [dtw{j,l}(i,k), path{j,l}{i,k}] = ...
-                        MFCCmatch(data_tr{i,j},data_tr{k,l});
+                        MFCCmatch_mex(data_tr{i,j},data_tr{k,l});
                 end
                 for k=i+1:Ntr
                     dtw{j,l}(k,i) = dtw{j,l}(i,k);
@@ -217,16 +191,16 @@ for i=1:Ncl
     classification = false(ind2,1); % false if closer to mfcc2
     while (~stabilized)
         for j=1:length(classification)
-            [d1, ~] = MFCCmatch(data_tr{j,i},mfcc1);
-            [d2, ~] = MFCCmatch(data_tr{j,i},mfcc2);
+            [d1, ~] = MFCCmatch_mex(data_tr{j,i},mfcc1);
+            [d2, ~] = MFCCmatch_mex(data_tr{j,i},mfcc2);
             if d1<d2
                 classification(j) = true;
             end
         end
         mfcc1new = MFCCmultipleMean(data_tr(classification,i));
         mfcc2new = MFCCmultipleMean(data_tr(~classification,i));
-        [d1, ~] = MFCCmatch(mfcc1new,mfcc1);
-        [d2, ~] = MFCCmatch(mfcc2new,mfcc2);
+        [d1, ~] = MFCCmatch_mex(mfcc1new,mfcc1);
+        [d2, ~] = MFCCmatch_mex(mfcc2new,mfcc2);
         stabilized = (d1<env.clusterThresh) && (d2<env.clusterThresh);
         mfcc2 = mfcc2new;
         mfcc1 = mfcc1new;
@@ -305,7 +279,7 @@ for ar_ind = 1:Ncl
             l = l / k / 2;
             medians{i,ar_ind,fm_ind} = med{1};
             for k=2:length(med)
-                [~,p] = MFCCmatch(medians{i,ar_ind,fm_ind},med{k});
+                [~,p] = MFCCmatch_mex(medians{i,ar_ind,fm_ind},med{k});
                 medians{i,ar_ind,fm_ind} = MFCCmean(medians{i,ar_ind,fm_ind},med{k},p,ar(i));
                 %medians{i} = MFCCreduce(medians{i},max([size(medians{i},1),size(med{k},1)]));
             end
@@ -318,7 +292,7 @@ for ar_ind = 1:Ncl
                 result = zeros(Ncl,1);
                 for k=1:Ncl
                     [result(k), ~] = ...
-                        MFCCmatch(tested,medians{k,ar_ind,fm_ind});
+                        MFCCmatch_mex(tested,medians{k,ar_ind,fm_ind});
                 end
                 [~, minV] = min(result);
                 if minV ~= j
@@ -344,7 +318,7 @@ for i=1:Nte
         result = zeros(size(env.medians,1),size(env.medians,2));
         for k=1:Ncl
             for l=1:size(env.medians,2)
-                [result(k,l), ~] = MFCCmatch(tested,env.medians{k,l});
+                [result(k,l), ~] = MFCCmatch_mex(tested,env.medians{k,l});
             end
         end
 
@@ -373,7 +347,7 @@ for i=1:Nte
         
         for k=1:Ncl
             for l=1:size(env.mediani,2)
-                [result(k,l), ~] = MFCCmatch(tested,env.mediani{k,l});
+                [result(k,l), ~] = MFCCmatch_mex(tested,env.mediani{k,l});
             end
         end
 

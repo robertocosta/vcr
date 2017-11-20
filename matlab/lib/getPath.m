@@ -1,6 +1,7 @@
 function p = getPath( D )
     x = size(D,2);
     y = size(D,1);
+    p=0;
     if ((x==1)&&(y==1))
         p = [1,1];
     elseif (x==1)

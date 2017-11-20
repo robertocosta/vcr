@@ -1,4 +1,5 @@
 function [ c ] = costs( P,Q )
+
     x = size(P,1);
     y = size(Q,1);
     c = zeros(x,y);
@@ -7,5 +8,6 @@ function [ c ] = costs( P,Q )
             c(i,j)=norm(P(i,:)-Q(j,:));
         end
     end
+
 end
 

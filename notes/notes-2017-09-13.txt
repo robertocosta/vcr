@@ -1,0 +1,6 @@
+- mean and variance of the distance between MFCC and candidate
+- Confidence Intervals computed as mean + sqrt(variance)
+- NO MFCC Reduce, YES Iterative Mean
+- NO MFCC Compression
+- K-Fold cross validation
+- Training and Testing with only 1 speaker

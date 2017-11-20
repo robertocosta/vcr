@@ -1,7 +1,8 @@
 function [ dist, path ] = MFCCmatch( P,Q )
-    global C;
+    %global C;
     x = size(P,1);
     y = size(Q,1);
+
 %     if (y>x)
 %         [ dist, path ] = match2(Q,P);
 %         for i=1:size(path,1)
@@ -12,6 +13,7 @@ function [ dist, path ] = MFCCmatch( P,Q )
 %         dist = dist';
 %         return
 %     end
+
     C = costs(P,Q);
     D = zeros(x,y);
     D(1,1) = C(1,1);
@@ -27,6 +29,7 @@ function [ dist, path ] = MFCCmatch( P,Q )
         end
     end
     dist = D(x,y);
+    %dist = D;
     path = getPath(D');    
 end
 
