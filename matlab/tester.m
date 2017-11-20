@@ -181,36 +181,42 @@ clearvars tmp i j CI mins maxs;
 % Parameters setting
 env.clusterThresh = 0.1;
 % Algorithm
-env.mediani = cell(Ncl,2);
-for i=1:Ncl
-    ind1 = 1;
-    ind2 = size(dtw{i,i},1);
-    mfcc1 = data_tr{ind1,i};
-    mfcc2 = data_tr{ind2,i};
-    stabilized = false;
-    classification = false(ind2,1); % false if closer to mfcc2
-    while (~stabilized)
-        for j=1:length(classification)
-            [d1, ~] = MFCCmatch_mex(data_tr{j,i},mfcc1);
-            [d2, ~] = MFCCmatch_mex(data_tr{j,i},mfcc2);
-            if d1<d2
-                classification(j) = true;
+iterativeMean = false;
+if iterativeMean
+    
+    env.mediani = cell(Ncl,2);
+    for i=1:Ncl
+        ind1 = 1;
+        ind2 = size(dtw{i,i},1);
+        mfcc1 = data_tr{ind1,i};
+        mfcc2 = data_tr{ind2,i};
+        stabilized = false;
+        classification = false(ind2,1); % false if closer to mfcc2
+        while (~stabilized)
+            for j=1:length(classification)
+                [d1, ~] = MFCCmatch_mex(data_tr{j,i},mfcc1);
+                [d2, ~] = MFCCmatch_mex(data_tr{j,i},mfcc2);
+                if d1<d2
+                    classification(j) = true;
+                end
             end
+            mfcc1new = MFCCmultipleMean(data_tr(classification,i));
+            mfcc2new = MFCCmultipleMean(data_tr(~classification,i));
+            [d1, ~] = MFCCmatch_mex(mfcc1new,mfcc1);
+            [d2, ~] = MFCCmatch_mex(mfcc2new,mfcc2);
+            stabilized = (d1<env.clusterThresh) && (d2<env.clusterThresh);
+            mfcc2 = mfcc2new;
+            mfcc1 = mfcc1new;
         end
-        mfcc1new = MFCCmultipleMean(data_tr(classification,i));
-        mfcc2new = MFCCmultipleMean(data_tr(~classification,i));
-        [d1, ~] = MFCCmatch_mex(mfcc1new,mfcc1);
-        [d2, ~] = MFCCmatch_mex(mfcc2new,mfcc2);
-        stabilized = (d1<env.clusterThresh) && (d2<env.clusterThresh);
-        mfcc2 = mfcc2new;
-        mfcc1 = mfcc1new;
+        env.mediani{i,1} = mfcc1;
+        env.mediani{i,2} = mfcc2;
+        clearvars mfcc1new mfcc2new d1 d2 paths1 paths2 i j ind1 ...
+            ind2 mfcc1 mfcc2 stabilized classification;
     end
-	env.mediani{i,1} = mfcc1;
-    env.mediani{i,2} = mfcc2;
-    clearvars mfcc1new mfcc2new d1 d2 paths1 paths2 i j ind1 ...
-        ind2 mfcc1 mfcc2 stabilized classification;
+    save(strcat('mat',env.slash,'iterative_mediani.mat'),'env');
+else
+    load(strcat('mat',env.slash,'iterative_mediani.mat'));
 end
-
 %% Median MFCC
 % Output: env.medians, {Ncl x 1}: 1 MFCC sequence for each class
 % Parameters setting
@@ -339,10 +345,24 @@ env.classified = classified;
 %% TESTING K-MEANS
 classified = zeros(size(data_te));
 wrong = zeros(1,Ncl);
+mediani = cell(size(env.mediani,1));
+for i=1:length(mediani)
+    [~,path] = MFCCmatch_mex(env.mediani{i,1},env.mediani{i,2});
+    mediani{i} = MFCCmean(env.mediani{i,1},env.mediani{i,2},path);
+end
 for i=1:Nte
     for j=1:Ncl
         tested = data_te{i,j};
+        
+        distances = zeros(length(mediani),1);
+        for m=1:size(mediani)
+            distances(m) = MFCCmatch_mex(tested,mediani{m});
+        end
+        ind = find(distances == min(distances));
+        classified(i,j) = ind(1);
+            
         %result = zeros(Ncl,1);
+        %{
         result = zeros(size(env.mediani,1),size(env.mediani,2));
         
         for k=1:Ncl
@@ -359,6 +379,7 @@ for i=1:Nte
                 int2str(find(meanRes==min(meanRes))),...
                 ':min=',int2str(res),'?'));
         end
+        
 %{
         [v, res] = sort(result,1);
         if (v(1)<env.CI(res(1))) % I'm quite sure
@@ -370,6 +391,7 @@ for i=1:Nte
         end
 %}
         classified(i,j) = res;
+        %}
         if (classified(i,j)~=j)
             %disp(strcat('error.{i,j}={',int2str(i),',',int2str(j),'}'));
             wrong(j) = wrong(j) + 1;
