@@ -1,5 +1,7 @@
-%global env;
-%global commands;
+global env;
+global commands;
+env.os = getenv('OS');
+env.reloadData = false;
 
 if (strcmp(env.os,'Windows_NT'))
     env.dirName = '..\dataset\';

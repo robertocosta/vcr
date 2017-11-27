@@ -1,7 +1,6 @@
 clear all; close all;
 global env;
 env.MFCCcompression = false;
-env.reloadData = false;
 env.os = getenv('OS');
 env.computeDTW = false;
 %% Voice command recognition
