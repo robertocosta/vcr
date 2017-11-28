@@ -23,7 +23,7 @@ for i=1:env.Ncl
     ind = ind + length(labels);
 end
 clearvars i j labels lab ind;
-env.computeMEL = true;
+env.computeMEL = false;
 if env.computeMEL
     tic;
     for i=1:env.Ntot
@@ -73,48 +73,57 @@ else
     end
 end
 
-env.weightMean = 0.7;
 if env.computeMeans
-    env.K = [5, 10];
-    env.out = cell(length(env.K),1);
-    for k_ind=1:length(env.K)
-        k = env.K(k_ind);
-        out = cell(1,k);
-        Nte = round(env.n/k);
-        Ntr = env.n - Nte;    
-        for ki=1:k
-            outs = cell(env.Ncl,4);
-            % will have 2 candidates MFCC and the variance
-            te_ind = [(Nte/2)*(ki-1)+1 : (Nte/2)*ki, ...
-                env.n/2+(Nte/2)*(ki-1)+1 : env.n/2+(Nte/2)*ki];
-            tr_ind = 1:env.n;
-            tr_ind(te_ind) = [];
-            data_tr = data;
-            data_te = data;
-            for i=1:env.Ncl
-                tr_ind_cl = tr_ind+env.n*(i-1);
-                te_ind_cl = te_ind+env.n*(i-1);
-                data_tr_cl= data(tr_ind_cl,:);
-                %[outs{i,1}, outs{i,3}] = iterativeMean(data_tr_cl(:,5));
-                outs{i,1} = MFCCmultipleMean(data_tr_cl(1:end/2,5));
-                outs{i,2} = data_tr_cl(1:end/2,5);
-                outs{i,3} = MFCCmultipleMean(data_tr_cl(end/2+1:end,5));
-                outs{i,4} = data_tr_cl(end/2+1:end,5);
+    for wM = 0.5 : 0.1 : 1
+    env.weightMean = wM;
+        if env.computeMeans
+            env.K = [5, 10];
+            env.out = cell(length(env.K),1);
+            for k_ind=1:length(env.K)
+                k = env.K(k_ind);
+                out = cell(1,k);
+                Nte = round(env.n/k);
+                Ntr = env.n - Nte;    
+                for ki=1:k
+                    outs = cell(env.Ncl,4);
+                    % will have 2 candidates MFCC and the variance
+                    te_ind = [(Nte/2)*(ki-1)+1 : (Nte/2)*ki, ...
+                        env.n/2+(Nte/2)*(ki-1)+1 : env.n/2+(Nte/2)*ki];
+                    tr_ind = 1:env.n;
+                    tr_ind(te_ind) = [];
+                    data_tr = data;
+                    data_te = data;
+                    for i=1:env.Ncl
+                        tr_ind_cl = tr_ind+env.n*(i-1);
+                        te_ind_cl = te_ind+env.n*(i-1);
+                        data_tr_cl= data(tr_ind_cl,:);
+                        %[outs{i,1}, outs{i,3}] = iterativeMean(data_tr_cl(:,5));
+                        outs{i,1} = MFCCmultipleMean(data_tr_cl(1:end/2,5));
+                        outs{i,2} = data_tr_cl(1:end/2,5);
+                        outs{i,3} = MFCCmultipleMean(data_tr_cl(end/2+1:end,5));
+                        outs{i,4} = data_tr_cl(end/2+1:end,5);
+                    end
+                    out{ki} = outs;    
+                    %data_te(tr_ind,:) = cell(length(tr_ind),size(data_te,2));
+                end
+                env.out{k_ind} = out;
             end
-            out{ki} = outs;    
-            %data_te(tr_ind,:) = cell(length(tr_ind),size(data_te,2));
+            clearvars i k k_ind ki Nte Ntr out outs te_ind te_ind_cl tr_ind ...
+                tr_ind_cl data_te data_tr data_tr_cl;
+            save(strcat('mat',env.slash,'median_MFCCs_computed_weight_',...
+                num2str(weightMean),'.mat'),'env','data');
+        else
+            load(strcat('mat',env.slash,'median_MFCCs_computed_weight_',...
+                num2str(weightMean),'.mat'));
         end
-        env.out{k_ind} = out;
     end
-    clearvars i k k_ind ki Nte Ntr out outs te_ind te_ind_cl tr_ind ...
-        tr_ind_cl data_te data_tr data_tr_cl;
-    save(strcat('mat',env.slash,'means2_computed.mat'),'env','data');
 else
-    load(strcat('mat',env.slash,'means2_computed.mat'));
+    load(strcat('mat',env.slash,'median_MFCCs_computed_weight_',...
+        num2str(weightMean),'.mat'));
 end
 
 % compute variance
-env.computeVar = true;
+env.computeVar = false;
 if env.computeVar
     for k_ind=1:length(env.K)
         k = env.K(k_ind);
@@ -147,7 +156,7 @@ else
     load(strcat('mat',env.slash,'var2_computed.mat'));
 end
 
-env.predictMFCC = true;
+env.predictMFCC = false;
 if env.predictMFCC
     wrong = cell(length(env.K),1);
     for k_ind=1:length(env.K)
