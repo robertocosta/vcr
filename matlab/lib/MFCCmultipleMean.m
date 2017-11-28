@@ -3,6 +3,8 @@ function [ mfcc ] = MFCCmultipleMean( mfccArIn )
 %   Takes the two closest elements, do the mean, iterate
 mfccAr = mfccArIn;
 n = size(mfccAr,1);
+mfccArOut = cell(round(n/2),1);
+iOut = 1;
 while (n>2)
     dtw = zeros(n);
     path = cell(n);
@@ -23,7 +25,7 @@ while (n>2)
     minDtw = zeros(n,1);
     tmp = zeros(n);
     tmp((n+1)*(0:n-1)+1) = inf;
-    dtw = dtw + tmp;
+    dtw = dtw + tmp; % add infinity to the diagonal
     for i=1:n
         [minDtw(i), minInd(i)] = min(dtw(i,:));
     end
@@ -32,13 +34,28 @@ while (n>2)
     mins_sorted = horzcat(indexes,mins_sorted);
     mfccMeanClosest = MFCCmean(mfccAr{mins_sorted(1,1)},...
         mfccAr{mins_sorted(1,2)},path2{mins_sorted(1,1),mins_sorted(1,2)});
-    mfccAr{mins_sorted(1,1)} = mfccMeanClosest;
-    mfccAr(mins_sorted(1,2)) = [];
+    mfccArOut{iOut} = mfccMeanClosest;
+    iOut = iOut + 1;
+    ind1 = mins_sorted(1,2);
+    ind2 = mins_sorted(1,1);
+    if ind1<ind2
+        mfccAr(ind2) = [];
+        mfccAr(ind1) = [];
+    else
+        mfccAr(ind1) = [];
+        mfccAr(ind2) = [];
+    end
     n = size(mfccAr,1);
 end
-%clearvars tmp i j;
-[~, path] = MFCCmatch_mex(mfccAr{1},mfccAr{2});
-mfcc = MFCCmean(mfccAr{1}, mfccAr{2},path);
+global env;
+mfcc = mfccArOut{1};
+for i=1:length(mfccArOut)/2
+    [~, path] = MFCCmatch_mex(mfcc,mfccArOut{i+1});
+    mfcc = MFCCmean(mfcc,mfccArOut{i+1},path,env.weightMean);
+end
+
+clearvars tmp i j;
+
 %{
 maxLength = 0;
 for i=1:size(mfccAr,1)

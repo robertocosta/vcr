@@ -73,6 +73,7 @@ else
     end
 end
 
+env.weightMean = 0.7;
 if env.computeMeans
     env.K = [5, 10];
     env.out = cell(length(env.K),1);
@@ -113,7 +114,7 @@ else
 end
 
 % compute variance
-env.computeVar = false;
+env.computeVar = true;
 if env.computeVar
     for k_ind=1:length(env.K)
         k = env.K(k_ind);
@@ -223,7 +224,8 @@ for i=1:env.Ncl
 end
 clearvars errors i j k k_ind ki tots;
 disp(strcat('mean accuracy=',num2str(mean(accuracy)*100),'%'));
-save(strcat('mat',env.slash,'out2.mat'),'env','data','wrong','accuracy');
+save(strcat('mat',env.slash,'out-acc_',num2str(mean(accuracy)*100),...
+    '.mat'),'env','data','wrong','accuracy','mean_errors','accuracy');
 %{
 % Computing DTW between all data
 env.computeDTW = true;
