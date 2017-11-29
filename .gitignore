@@ -1,6 +1,11 @@
 *.wav
 matlab/out/acc_55*.mat
 matlab/mat/backup*
-matlab/mat/means2*
+matlab/mat/median*
+matlab/mat/mean*
 matlab/mat/dtw_compu*
 *.html
+tex/*.gz
+tex/*.log
+tex/*.aux
+*.js
