@@ -111,7 +111,7 @@ if env.computeMeans
             clearvars i k k_ind ki Nte Ntr out outs te_ind te_ind_cl tr_ind ...
                 tr_ind_cl data_te data_tr data_tr_cl;
             save(strcat('mat',env.slash,'median_MFCCs_computed_weight_',...
-                num2str(weightMean),'.mat'),'env','data');
+                num2str(weightMean),'.mat'),'env');
         else
             load(strcat('mat',env.slash,'median_MFCCs_computed_weight_',...
                 num2str(weightMean),'.mat'));
@@ -151,9 +151,11 @@ if env.computeVar
         end
     end
     clearvars i j k data1 data2 dtws k_ind ki mean1 mean2 meanDTW varDTW;
-    save(strcat('mat',env.slash,'var2_computed.mat'),'env','data');
+    save(strcat('mat',env.slash,'var_computed_weight_',...
+                num2str(weightMean),'.mat'),'env');
 else
-    load(strcat('mat',env.slash,'var2_computed.mat'));
+    load(strcat('mat',env.slash,'var_computed_weight_',...
+                num2str(weightMean),'.mat'));
 end
 
 env.predictMFCC = false;
@@ -197,9 +199,11 @@ if env.predictMFCC
         end
     end
     clearvars data_te i ind ind_tr j k k_ind ki mfcc Nte Ntr p te_ind te_ind_cl;
-    save(strcat('mat',env.slash,'accuracy_computed.mat'),'wrong');
+    save(strcat('mat',env.slash,'accuracy_computed_weight_',...
+                num2str(weightMean),'.mat'),'wrong');
 else
-    load(strcat('mat',env.slash,'accuracy_computed.mat'));
+    load(strcat('mat',env.slash,'accuracy_computed_weight_',...
+                num2str(weightMean),'.mat'));
 end
 
 mean_errors = cell(length(env.K),1);
@@ -234,7 +238,7 @@ end
 clearvars errors i j k k_ind ki tots;
 disp(strcat('mean accuracy=',num2str(mean(accuracy)*100),'%'));
 save(strcat('mat',env.slash,'out-acc_',num2str(mean(accuracy)*100),...
-    '.mat'),'env','data','wrong','accuracy','mean_errors','accuracy');
+    '.mat'),'env','wrong','accuracy','mean_errors','accuracy');
 %{
 % Computing DTW between all data
 env.computeDTW = true;
