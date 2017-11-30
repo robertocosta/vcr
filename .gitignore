@@ -5,7 +5,8 @@ matlab/mat/median*
 matlab/mat/mean*
 matlab/mat/dtw_compu*
 *.html
-tex/*.gz
-tex/*.log
-tex/*.aux
+docs/*.gz
+docs/*.log
+docs/*.aux
 *.js
+*.synctex.gz
